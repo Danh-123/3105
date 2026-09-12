@@ -32,18 +32,26 @@ jobs:
           xcodebuild -list || true
           if [ -f "*.xcworkspace" ]; then xcodebuild -list -workspace *.xcworkspace; fi
 
+          - name: List available schemes (debug)
+        run: |
+          if ls -d *.xcworkspace 1> /dev/null 2>&1; then
+            xcodebuild -list -workspace $(ls -d *.xcworkspace | head -1)
+          else
+            xcodebuild -list -project $(ls -d *.xcodeproj | head -1)
+          fi
+
       - name: Archive project
         run: |
-          if ls *.xcworkspace 1> /dev/null 2>&1; then
+          if ls -d *.xcworkspace 1> /dev/null 2>&1; then
             xcodebuild archive \
-              -workspace $(ls *.xcworkspace | head -1) \
+              -workspace $(ls -d *.xcworkspace | head -1) \
               -scheme "${{ github.event.inputs.scheme }}" \
               -configuration Release \
               -archivePath build/App.xcarchive \
               CODE_SIGNING_ALLOWED=NO
           else
             xcodebuild archive \
-              -project $(ls *.xcodeproj | head -1) \
+              -project $(ls -d *.xcodeproj | head -1) \
               -scheme "${{ github.event.inputs.scheme }}" \
               -configuration Release \
               -archivePath build/App.xcarchive \

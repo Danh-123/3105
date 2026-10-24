@@ -667,3 +667,20 @@
 "settings.developer_mode_footer" = "开发者模式会在主导航中添加“文件”。“文件”可以浏览和修改应用容器。";
 "wallpaper.package_details" = "软件包详情";
 "wallpaper.package_files" = "%lld 个文件";
+
+/* 文件夹挂载与安全作用域书签 (iOS 27) */
+"mount.title" = "已挂载文件夹";
+"mount.system_capability" = "系统功能支持";
+"mount.capability_footer" = "在 iOS 27 及沙盒环境中，安全作用域文件夹书签（Security-Scoped Bookmark）可让 3105 安全读写文件，无需内核权限。";
+"mount.actions" = "操作";
+"mount.add_folder" = "选择要挂载的文件夹…";
+"mount.refresh" = "重新激活所有权限";
+"mount.mounted_folders" = "已挂载文件夹 (%lld)";
+"mount.mounted_footer" = "向左轻扫文件夹以移除访问权限（卸载）。";
+"mount.empty_title" = "暂无已挂载文件夹";
+"mount.empty_message" = "选择应用容器或外部文件夹以授予 3105 文件访问权限。";
+"mount.permission_denied_title" = "权限受限";
+"mount.permission_denied_message" = "在此 iOS 版本上，此路径需要用户显式授予文件夹访问权限。";
+"mount.mount_action" = "挂载文件夹";
+"browser.mounted_folders" = "已挂载文件夹";
+

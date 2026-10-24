@@ -9,8 +9,8 @@
 </p>
 
 <p align="center">
-  <img alt="Version" src="https://img.shields.io/badge/version-2.0-E6753A?style=flat-square">
-  <img alt="iOS" src="https://img.shields.io/badge/iOS-17.0–18.7.1%20%7C%2026.0–26.6.1%20%7C%2027%20beta%201–4-222222?style=flat-square">
+  <img alt="Version" src="https://img.shields.io/badge/version-2.1-E6753A?style=flat-square">
+  <img alt="iOS" src="https://img.shields.io/badge/iOS-17.0–18.7.1%20%7C%2026.0–26.6.1%20%7C%2027.0+-222222?style=flat-square">
   <img alt="Swift" src="https://img.shields.io/badge/Swift-5-F05138?style=flat-square&logo=swift&logoColor=white">
   <img alt="Languages" src="https://img.shields.io/badge/languages-English%20%7C%20Tiếng%20Việt%20%7C%20简体中文-E6753A?style=flat-square">
 </p>
@@ -34,6 +34,14 @@
   &nbsp;
   <img src="docs/images/installed-2.0.png" width="245" alt="3105 2.0 Installed library">
 </p>
+
+## What's new in 2.1
+
+- **Full iOS 27 Support & Security-Scoped Folder Mounts** — completely isolates kernel exploits on iOS 27+ to eliminate crash/abort conditions, seamlessly falling back to user-delegated folder mounting (`BookmarkManager`) with persistent read/write access.
+- **Mounted Folders Management (`FolderMountSheet`)** — view active system capabilities (`kernelRW`, `mcmTraversal`, `securityScopedMount`), manage mounted directory bookmarks, and re-activate security scopes across app lifecycles.
+- **Intelligent Permission Handling** — the File Browser automatically detects `EACCES` / permission denied errors and offers a one-tap "Mount Folder" shortcut with immediate automatic retry.
+- **Symlink & Path Normalization** — resolves `/var` vs `/private/var` symlinks across all patch transactions and file manager operations.
+- **Complete Document Types Registration** — native association and in-place document opening for `.3105` (patches), `.3105pass` (dialer themes), and `.tendies` (wallpapers) via Files app and AirDrop.
 
 ## What's new in 2.0
 
@@ -63,19 +71,17 @@ Compared with 1.1.1, version 2.0 turns 3105 from a collection of separate tools 
 
 ## Compatibility
 
-3105 enables device-level features only for builds explicitly verified by the project:
+3105 enables device-level features across supported systems:
 
-| System | Verified range/builds |
-| --- | --- |
-| iOS 17 | 17.0 through 17.7 (kernel exploit) |
-| iOS 18 | 18.0 through 18.7.1 (kernel exploit) |
-| iOS 26 | 26.0 through 26.6.1 |
-| iOS 27 Developer Beta 1 | `24A5355q` |
-| iOS 27 Developer Beta 2 | `24A5370h` |
-| iOS 27 Developer Beta 3 / Public Beta 1 | `24A5380h` |
-| iOS 27 Developer Beta 4 / Public Beta 2 | `24A5390f` |
+| System | Verified range/builds | Access Mode |
+| --- | --- | --- |
+| iOS 17 | 17.0 through 17.7 | Kernel exploit (opa334, opt-in) |
+| iOS 18 | 18.0 through 18.7.1 | Kernel exploit (opa334, opt-in) |
+| iOS 26 | 26.0 through 26.6.1 | MHA-C2 / MCM Traversal |
+| iOS 27 Developer Beta 1–4 | `24A5355q` – `24A5390f` | Security-Scoped Mounts & MCM Traversal |
+| iOS 27 (all releases) | 27.0 and later | Security-Scoped Folder Mounts (`BookmarkManager`) |
 
-Unlisted iOS 27 builds are marked unsupported rather than assumed compatible. The iOS 17–18 kernel exploit is opt-in (manual button) because a failed exploit attempt may restart the app.
+On iOS 27, kernel exploit execution is safely bypassed to avoid crashes, and file operations seamlessly operate via user-granted Security-Scoped Bookmarks.
 
 ## Installation notes
 

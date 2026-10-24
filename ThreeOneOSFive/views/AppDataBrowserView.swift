@@ -13,6 +13,8 @@ struct AppDataBrowserView: View {
     @State private var errorMessage: String?
     @State private var hasLoaded = false
     @State private var workspaceURL: URL?
+    @ObservedObject private var bookmarkManager = BookmarkManager.shared
+    @State private var isShowingMountSheet = false
     @Binding private var tabSession: FilesTabSession
     let onOpenSettings: () -> Void
     let onOpenLogs: () -> Void
@@ -57,6 +59,14 @@ struct AppDataBrowserView: View {
             .navigationTitle(language.text("browser.title"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button {
+                        isShowingMountSheet = true
+                    } label: {
+                        Image(systemName: "folder.badge.gearshape")
+                    }
+                    .accessibilityLabel(language.text("mount.title"))
+                }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     FilesTabToolbarButton(session: $tabSession)
                 }
@@ -104,6 +114,9 @@ struct AppDataBrowserView: View {
                         filesTabSession: $tabSession
                     )
                 }
+            }
+            .sheet(isPresented: $isShowingMountSheet) {
+                FolderMountSheet()
             }
         }
     }
@@ -155,6 +168,50 @@ struct AppDataBrowserView: View {
                     }
                     .contextMenu {
                         openInNewTabButton(workspaceDestination)
+                    }
+                }
+            }
+            if !bookmarkManager.mountedFolders.isEmpty {
+                Section(language.text("browser.mounted_folders")) {
+                    ForEach(bookmarkManager.mountedFolders) { folder in
+                        let folderDestination = FileBrowserDestination(
+                            containerPath: folder.path,
+                            startPath: folder.path,
+                            title: folder.name,
+                            bundleID: nil
+                        )
+                        NavigationLink(value: folderDestination) {
+                            HStack(spacing: 10) {
+                                AppRowIcon(
+                                    systemName: folder.isAccessible ? "folder.fill" : "folder.badge.gearshape",
+                                    tint: folder.isAccessible ? AppTheme.accent : .orange
+                                )
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(folder.name)
+                                        .font(.subheadline.weight(.semibold))
+                                    Text(folder.path)
+                                        .font(.caption2.monospaced())
+                                        .foregroundStyle(.secondary)
+                                        .lineLimit(1)
+                                        .truncationMode(.middle)
+                                }
+                                Spacer()
+                                if !folder.isAccessible {
+                                    Image(systemName: "exclamationmark.triangle.fill")
+                                        .font(.caption)
+                                        .foregroundStyle(.orange)
+                                }
+                            }
+                            .padding(.vertical, 2)
+                        }
+                        .contextMenu {
+                            openInNewTabButton(folderDestination)
+                            Button(role: .destructive) {
+                                bookmarkManager.removeBookmark(id: folder.id)
+                            } label: {
+                                Label(language.text("browser.delete"), systemImage: "trash")
+                            }
+                        }
                     }
                 }
             }

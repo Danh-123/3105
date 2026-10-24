@@ -226,7 +226,7 @@ enum FileManagerService {
             in: sourceURL.deletingLastPathComponent(),
             fileManager: fileManager
         )
-        if destinationURL.standardizedFileURL == sourceURL.standardizedFileURL {
+        if destinationURL.resolvingSymlinksInPath().standardizedFileURL == sourceURL.resolvingSymlinksInPath().standardizedFileURL {
             return sourceURL
         }
         guard !fileManager.fileExists(atPath: destinationURL.path) else {
@@ -266,8 +266,8 @@ enum FileManagerService {
         conflictPolicy: FileConflictPolicy,
         fileManager: FileManager = .default
     ) throws -> FileTransferResult {
-        let source = sourceURL.standardizedFileURL
-        let destinationDirectory = directoryURL.standardizedFileURL
+        let source = sourceURL.resolvingSymlinksInPath().standardizedFileURL
+        let destinationDirectory = directoryURL.resolvingSymlinksInPath().standardizedFileURL
         let sourceValues = try values(
             for: source,
             missingError: .sourceMissing,
@@ -295,7 +295,7 @@ enum FileManagerService {
             isDirectory: sourceValues.isDirectory == true
         )
         if mode == .move,
-           source.standardizedFileURL == requestedDestination.standardizedFileURL {
+           source.resolvingSymlinksInPath().standardizedFileURL == requestedDestination.resolvingSymlinksInPath().standardizedFileURL {
             return FileTransferResult(
                 sourceURL: source,
                 destinationURL: requestedDestination,

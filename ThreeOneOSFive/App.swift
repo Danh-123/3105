@@ -17,7 +17,9 @@ struct ThreeOneOSFiveApp: App {
 
     init() {
         setupLogCapture()
+        BookmarkManager.shared.activateAllBookmarks()
         log("app: 3105 launching — iOS \(AppInfo.osVersion) (\(AppInfo.osBuild)) \(AppInfo.machineName)")
+        log("app: capability: \(SystemCapabilityDetector.capabilitySummary)")
     }
 
     private var language: AppLanguage {
@@ -81,17 +83,32 @@ struct ThreeOneOSFiveApp: App {
                 )
             }
             .onAppear {
+                BookmarkManager.shared.activateAllBookmarks()
                 if !showOnboarding {
                     appState.detectSupport()
                     checkForUpdate()
                 }
             }
             .onChange(of: scenePhase) { phase in
-                guard phase == .active, !showOnboarding else { return }
+                guard phase == .active else { return }
+                BookmarkManager.shared.activateAllBookmarks()
+                guard !showOnboarding else { return }
                 appState.detectSupport()
             }
             .onOpenURL { url in
-                patchDraftCoordinator.presentImport(url)
+                let didAccess = url.startAccessingSecurityScopedResource()
+                let ext = url.pathExtension.lowercased()
+                if ext == "tendies" {
+                    Task {
+                        _ = try? WallpaperPackageStore.importPackage(
+                            from: url,
+                            displayName: url.deletingPathExtension().lastPathComponent
+                        )
+                        if didAccess { url.stopAccessingSecurityScopedResource() }
+                    }
+                } else {
+                    patchDraftCoordinator.presentImport(url)
+                }
             }
         }
     }
@@ -141,7 +158,14 @@ class AppState: ObservableObject {
             patch: v.patch,
             build: AppInfo.osBuild
         )
-        guard applicable else { return }
+        guard applicable else {
+            if SystemCapabilityDetector.isIOS27OrLater {
+                exploitStatus = .success(method: "Security-Scoped Mount (iOS 27)")
+            } else if v.major >= 26 {
+                exploitStatus = .success(method: "MCM Traversal")
+            }
+            return
+        }
 
         refreshKernelExploitStatus()
         maybeAutoRunKernelExploit()

@@ -336,7 +336,7 @@ enum PatchPathValidator {
     }
 
     static func canonicalFileURL(_ url: URL) -> URL {
-        var path = url.standardizedFileURL.path
+        var path = url.resolvingSymlinksInPath().standardizedFileURL.path
         if path == "/var" || path.hasPrefix("/var/") {
             path = "/private" + path
         }

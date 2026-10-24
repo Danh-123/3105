@@ -9,8 +9,8 @@
 </p>
 
 <p align="center">
-  <img alt="Phiên bản" src="https://img.shields.io/badge/phiên%20bản-2.0-E6753A?style=flat-square">
-  <img alt="iOS" src="https://img.shields.io/badge/iOS-17.0–18.7.1%20%7C%2026.0–26.6.1%20%7C%2027%20beta%201–4-222222?style=flat-square">
+  <img alt="Phiên bản" src="https://img.shields.io/badge/phiên%20bản-2.1-E6753A?style=flat-square">
+  <img alt="iOS" src="https://img.shields.io/badge/iOS-17.0–18.7.1%20%7C%2026.0–26.6.1%20%7C%2027.0+-222222?style=flat-square">
   <img alt="Ngôn ngữ" src="https://img.shields.io/badge/ngôn%20ngữ-English%20%7C%20Tiếng%20Việt%20%7C%20简体中文-E6753A?style=flat-square">
 </p>
 
@@ -28,6 +28,14 @@
   &nbsp;
   <img src="docs/images/installed-2.0.png" width="245" alt="Nội dung đã cài trong 3105 2.0">
 </p>
+
+## Có gì mới trong 2.1
+
+- **Hỗ trợ đầy đủ iOS 27 & Gắn kết thư mục bảo mật** — cô lập an toàn exploit kernel trên iOS 27+ để tránh văng ứng dụng, tự động chuyển đổi sang cơ chế cấp quyền theo thư mục do người dùng ủy quyền (`BookmarkManager`) với khả năng đọc/ghi bền vững qua các phiên ứng dụng.
+- **Quản lý Thư mục đã gắn kết (`FolderMountSheet`)** — hiển thị trực quan các khả năng hệ thống (`kernelRW`, `mcmTraversal`, `securityScopedMount`), quản lý danh sách bookmark thư mục đã cấp quyền, gắn kết nhanh qua trình chọn thư mục hệ thống và kích hoạt lại quyền chỉ bằng một chạm.
+- **Xử lý quyền truy cập thông minh** — File Browser tự động phát hiện mã lỗi `EACCES` / từ chối quyền truy cập, hiển thị giao diện gắn kết thư mục trực tiếp và hỗ trợ nút Thử lại tự động.
+- **Chuẩn hóa đường dẫn & Symlink toàn diện** — xử lý triệt để khác biệt giữa `/var` và `/private/var` trên tất cả các thao tác transaction patch và quản lý tệp.
+- **Khai báo định dạng tệp hoàn chỉnh** — đăng ký hệ thống và hỗ trợ mở tại chỗ cho cả 3 định dạng `.3105` (patch), `.3105pass` (giao diện gọi điện), và `.tendies` (hình nền) thông qua Files app và AirDrop.
 
 ## Có gì mới trong 2.0
 
@@ -58,17 +66,15 @@ So với 1.1.1, bản 2.0 chuyển 3105 từ một bộ công cụ riêng lẻ t
 
 ## Phiên bản iOS đã xác minh
 
-| Hệ thống | Phiên bản/build |
-| --- | --- |
-| iOS 17 | 17.0 đến 17.7.x |
-| iOS 18 | 18.0 đến 18.7.1 |
-| iOS 26 | 26.0 đến 26.6.1 |
-| iOS 27 Developer Beta 1 | `24A5355q` |
-| iOS 27 Developer Beta 2 | `24A5370h` |
-| iOS 27 Developer Beta 3 / Public Beta 1 | `24A5380h` |
-| iOS 27 Developer Beta 4 / Public Beta 2 | `24A5390f` |
+| Hệ thống | Phiên bản/build | Phương thức truy cập |
+| --- | --- | --- |
+| iOS 17 | 17.0 đến 17.7.x | Kernel exploit (opa334, thủ công) |
+| iOS 18 | 18.0 đến 18.7.1 | Kernel exploit (opa334, thủ công) |
+| iOS 26 | 26.0 đến 26.6.1 | MHA-C2 / MCM Traversal |
+| iOS 27 Developer Beta 1–4 | `24A5355q` – `24A5390f` | Security-Scoped Mounts & MCM Traversal |
+| iOS 27 (mọi phiên bản) | 27.0 trở lên | Security-Scoped Folder Mounts (`BookmarkManager`) |
 
-Những build không có trong bảng sẽ được đánh dấu là không hỗ trợ.
+Trên iOS 27, luồng kích hoạt exploit kernel được bỏ qua an toàn để tránh văng ứng dụng; toàn bộ thao tác tệp hoạt động mượt mà qua các thư mục được người dùng cấp quyền bằng BookmarkManager.
 
 ## Lưu ý cài đặt
 

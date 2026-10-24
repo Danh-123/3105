@@ -18,6 +18,8 @@ struct FileBrowserView: View {
     @State private var entries: [FileEntry] = []
     @State private var fileSearchText = ""
     @State private var isLoadingEntries = true
+    @State private var permissionDeniedPath: String?
+    @State private var isShowingMountSheet = false
     @State private var hasGranted = false
     @State private var pendingReplacementRequest: FileReplacementRequest?
     @State private var replacementRequest: FileReplacementRequest?
@@ -59,6 +61,7 @@ struct FileBrowserView: View {
 
     private var overlayState: FileBrowserOverlayState {
         if isLoadingEntries { return .loading }
+        if let deniedPath = permissionDeniedPath { return .permissionDenied(path: deniedPath) }
         if entries.isEmpty { return .empty }
         if filteredEntries.isEmpty { return .noResults }
         return .none
@@ -115,6 +118,8 @@ struct FileBrowserView: View {
                         fileEmptyView
                     case .noResults:
                         searchEmptyView
+                    case .permissionDenied(let deniedPath):
+                        permissionDeniedView(path: deniedPath)
                     case .none:
                         EmptyView()
                     }
@@ -365,6 +370,9 @@ struct FileBrowserView: View {
                 dismissButton: .default(Text(language.text("common.done")))
             )
         }
+        .sheet(isPresented: $isShowingMountSheet, onDismiss: { load() }) {
+            FolderMountSheet()
+        }
     }
 
     private var sortOrder: FileBrowserSortOrder {
@@ -541,6 +549,51 @@ struct FileBrowserView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding()
+    }
+
+    private func permissionDeniedView(path: String) -> some View {
+        VStack(spacing: 16) {
+            Image(systemName: "lock.shield.fill")
+                .font(.system(size: 42))
+                .foregroundStyle(AppTheme.accent)
+
+            VStack(spacing: 6) {
+                Text(language.text("mount.permission_denied_title"))
+                    .font(.headline)
+                    .multilineTextAlignment(.center)
+                Text(language.text("mount.permission_denied_message"))
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 24)
+            }
+
+            VStack(spacing: 10) {
+                Button {
+                    isShowingMountSheet = true
+                } label: {
+                    Label(language.text("mount.mount_action"), systemImage: "folder.badge.gearshape")
+                        .font(.subheadline.weight(.semibold))
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 10)
+                        .background(AppTheme.accent)
+                        .foregroundStyle(.white)
+                        .clipShape(Capsule())
+                }
+
+                Button {
+                    load()
+                } label: {
+                    Label(language.text("browser.retry"), systemImage: "arrow.clockwise")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .padding(.top, 4)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding()
+        .background(AppTheme.pageBackground)
     }
 
     private var isNamePromptPresented: Binding<Bool> {
@@ -1173,6 +1226,7 @@ struct FileBrowserView: View {
         let shouldGrant = !hasGranted && ContainerAccessPolicy.shouldRequestGrant(isRoot: isRoot)
         hasGranted = true
         isLoadingEntries = true
+        permissionDeniedPath = nil
         let path = currentPath
         let targetBundleID = bundleID
         DispatchQueue.global(qos: .userInitiated).async {
@@ -1190,22 +1244,38 @@ struct FileBrowserView: View {
                     log("filebrowser: traversal grant \(path) -> \(handle)")
                 }
             }
-            let loadedEntries = ContainerStore.listFiles(at: path)
-            DispatchQueue.main.async {
-                guard currentPath == path else { return }
-                entries = loadedEntries
-                selectedEntryIDs.formIntersection(Set(loadedEntries.map(\.id)))
-                isLoadingEntries = false
-            }
-            for directory in loadedEntries where directory.isDirectory {
-                let summary = try? FileBrowserMetadataScanner.directorySummary(
-                    at: URL(fileURLWithPath: directory.path, isDirectory: true)
-                )
+            let detailedResult = ContainerStore.listFilesDetailed(at: path)
+            switch detailedResult {
+            case .success(let loadedEntries):
                 DispatchQueue.main.async {
-                    guard currentPath == path,
-                          let index = entries.firstIndex(where: { $0.id == directory.id })
-                    else { return }
-                    entries[index] = directory.withDirectorySummary(summary)
+                    guard currentPath == path else { return }
+                    entries = loadedEntries
+                    selectedEntryIDs.formIntersection(Set(loadedEntries.map(\.id)))
+                    permissionDeniedPath = nil
+                    isLoadingEntries = false
+                }
+                for directory in loadedEntries where directory.isDirectory {
+                    let summary = try? FileBrowserMetadataScanner.directorySummary(
+                        at: URL(fileURLWithPath: directory.path, isDirectory: true)
+                    )
+                    DispatchQueue.main.async {
+                        guard currentPath == path,
+                              let index = entries.firstIndex(where: { $0.id == directory.id })
+                        else { return }
+                        entries[index] = directory.withDirectorySummary(summary)
+                    }
+                }
+            case .failure(let error):
+                DispatchQueue.main.async {
+                    guard currentPath == path else { return }
+                    entries = []
+                    selectedEntryIDs.removeAll()
+                    isLoadingEntries = false
+                    if case .permissionDenied(let deniedPath) = error {
+                        permissionDeniedPath = deniedPath
+                    } else {
+                        permissionDeniedPath = nil
+                    }
                 }
             }
         }
@@ -1402,6 +1472,7 @@ private enum FileBrowserOverlayState: Equatable {
     case loading
     case empty
     case noResults
+    case permissionDenied(path: String)
     case none
 }
 

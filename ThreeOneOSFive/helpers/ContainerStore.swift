@@ -710,49 +710,101 @@ enum ContainerStore {
 
     // MARK: File browsing
 
-    static func listFiles(at path: String) -> [FileEntry] {
+    static func listFilesDetailed(at path: String) -> Result<[FileEntry], ContainerStoreFileError> {
         let fm = FileManager.default
-        guard let items = try? fm.contentsOfDirectory(atPath: path) else {
-            log("listFiles: FAILED for \(path) errno=\(errno)")
+        let url = URL(fileURLWithPath: path).resolvingSymlinksInPath()
+        let resolvedPath = url.path
+
+        return BookmarkManager.shared.withSecurityScope(for: resolvedPath) { scopedURL in
+            let targetPath = scopedURL.path
+            do {
+                let items = try fm.contentsOfDirectory(atPath: targetPath)
+                var entries: [FileEntry] = []
+                for item in items {
+                    if item.hasPrefix(".") { continue }
+                    let full = (targetPath as NSString).appendingPathComponent(item)
+                    var isDir: ObjCBool = false
+                    guard fm.fileExists(atPath: full, isDirectory: &isDir) else { continue }
+                    let attributes = try? fm.attributesOfItem(atPath: full)
+                    let size = isDir.boolValue
+                        ? -1
+                        : (attributes?[.size] as? NSNumber)?.int64Value ?? 0
+                    entries.append(
+                        FileEntry(
+                            name: item,
+                            path: full,
+                            isDirectory: isDir.boolValue,
+                            size: size,
+                            modifiedAt: attributes?[.modificationDate] as? Date
+                        )
+                    )
+                }
+                let sorted = entries.sorted {
+                    if $0.isDirectory != $1.isDirectory { return $0.isDirectory }
+                    return $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending
+                }
+                return .success(sorted)
+            } catch let error as NSError {
+                log("listFiles: FAILED for \(targetPath) error=\(error.localizedDescription) domain=\(error.domain) code=\(error.code)")
+                if error.domain == NSCocoaErrorDomain && error.code == NSFileReadNoPermissionError {
+                    return .failure(.permissionDenied(path: resolvedPath))
+                }
+                if error.domain == NSPOSIXErrorDomain && (error.code == Int(EACCES) || error.code == Int(EPERM)) {
+                    return .failure(.permissionDenied(path: resolvedPath))
+                }
+                if error.domain == NSCocoaErrorDomain && error.code == NSFileNoSuchFileError {
+                    return .failure(.pathNotFound(path: resolvedPath))
+                }
+                if errno == EACCES || errno == EPERM {
+                    return .failure(.permissionDenied(path: resolvedPath))
+                }
+                return .failure(.unreadable(path: resolvedPath, code: error.code))
+            }
+        }
+    }
+
+    static func listFiles(at path: String) -> [FileEntry] {
+        let result = listFilesDetailed(at: path)
+        switch result {
+        case .success(let entries):
+            return entries
+        case .failure(let error):
+            log("listFiles: fallback returning empty for \(path), reason=\(error.localizedDescription)")
             return []
-        }
-        var entries: [FileEntry] = []
-        for item in items {
-            if item.hasPrefix(".") { continue }
-            let full = (path as NSString).appendingPathComponent(item)
-            var isDir: ObjCBool = false
-            guard fm.fileExists(atPath: full, isDirectory: &isDir) else { continue }
-            let attributes = try? fm.attributesOfItem(atPath: full)
-            let size = isDir.boolValue
-                ? -1
-                : (attributes?[.size] as? NSNumber)?.int64Value ?? 0
-            entries.append(
-                FileEntry(
-                    name: item,
-                    path: full,
-                    isDirectory: isDir.boolValue,
-                    size: size,
-                    modifiedAt: attributes?[.modificationDate] as? Date
-                )
-            )
-        }
-        return entries.sorted {
-            if $0.isDirectory != $1.isDirectory { return $0.isDirectory }
-            return $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending
         }
     }
 
     static func readTextFile(at path: String, limit: Int = 200_000) -> String {
-        guard let data = try? Data(contentsOf: URL(fileURLWithPath: path)) else {
-            return "Unable to read file."
+        let resolvedPath = URL(fileURLWithPath: path).resolvingSymlinksInPath().path
+        return BookmarkManager.shared.withSecurityScope(for: resolvedPath) { scopedURL in
+            guard let data = try? Data(contentsOf: scopedURL) else {
+                return "Unable to read file."
+            }
+            let truncated = data.prefix(limit)
+            if let text = String(data: truncated, encoding: .utf8) {
+                return data.count > limit ? text + "\n… [truncated]" : text
+            }
+            if let text = String(data: truncated, encoding: .utf16) {
+                return data.count > limit ? text + "\n… [truncated]" : text
+            }
+            return "Binary data (\(data.count) bytes) — not text."
         }
-        let truncated = data.prefix(limit)
-        if let text = String(data: truncated, encoding: .utf8) {
-            return data.count > limit ? text + "\n… [truncated]" : text
+    }
+}
+
+enum ContainerStoreFileError: Error, LocalizedError, Equatable {
+    case permissionDenied(path: String)
+    case pathNotFound(path: String)
+    case unreadable(path: String, code: Int)
+
+    var errorDescription: String? {
+        switch self {
+        case .permissionDenied(let path):
+            return "Permission denied for: \(path)"
+        case .pathNotFound(let path):
+            return "Path not found: \(path)"
+        case .unreadable(let path, let code):
+            return "Unreadable path: \(path) (code: \(code))"
         }
-        if let text = String(data: truncated, encoding: .utf16) {
-            return data.count > limit ? text + "\n… [truncated]" : text
-        }
-        return "Binary data (\(data.count) bytes) — not text."
     }
 }

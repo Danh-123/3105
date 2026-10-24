@@ -66,7 +66,7 @@ enum PatchProjectLibrary {
               ) else { return [] }
 
         var byID: [UUID: PatchLibraryItem] = [:]
-        for url in urls where url.pathExtension.lowercased() == "3105" {
+        for url in urls where url.pathExtension.lowercased() == "3105" || url.pathExtension.lowercased() == "3105pass" {
             do {
                 let data = try readPackage(at: url)
                 let summary = try PatchPackageCodec.inspect(data)

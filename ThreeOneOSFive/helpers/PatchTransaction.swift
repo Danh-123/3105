@@ -927,8 +927,15 @@ enum PatchTransaction {
         let handle = try FileHandle(forWritingTo: staging)
         try handle.synchronize()
         try handle.close()
-        guard rename(staging.path, target.path) == 0 else {
-            throw PatchPackageError.applyFailed
+        if rename(staging.path, target.path) != 0 {
+            do {
+                if fileManager.fileExists(atPath: target.path) {
+                    try fileManager.removeItem(at: target)
+                }
+                try fileManager.moveItem(at: staging, to: target)
+            } catch {
+                throw PatchPackageError.applyFailed
+            }
         }
     }
 
@@ -958,8 +965,15 @@ enum PatchTransaction {
         let handle = try FileHandle(forWritingTo: staging)
         try handle.synchronize()
         try handle.close()
-        guard rename(staging.path, target.path) == 0 else {
-            throw PatchPackageError.restoreFailed
+        if rename(staging.path, target.path) != 0 {
+            do {
+                if fileManager.fileExists(atPath: target.path) {
+                    try fileManager.removeItem(at: target)
+                }
+                try fileManager.moveItem(at: staging, to: target)
+            } catch {
+                throw PatchPackageError.restoreFailed
+            }
         }
     }
 
@@ -988,6 +1002,7 @@ enum PatchTransaction {
     }
 
     private static func containerFingerprint(_ url: URL) -> Data {
-        digest(Data(PatchPathValidator.canonicalFileURL(url).path.utf8))
+        let canonical = PatchPathValidator.canonicalFileURL(url.resolvingSymlinksInPath())
+        return digest(Data(canonical.path.utf8))
     }
 }

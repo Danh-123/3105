@@ -667,3 +667,20 @@
 "settings.developer_mode_footer" = "Developer Mode adds Files to the main navigation. Files can browse and modify application containers.";
 "wallpaper.package_details" = "Package Details";
 "wallpaper.package_files" = "%lld files";
+
+/* Folder Mounting & Security-Scoped Bookmarks (iOS 27) */
+"mount.title" = "Mounted Folders";
+"mount.system_capability" = "System Capabilities";
+"mount.capability_footer" = "On iOS 27 and sandboxed environments, security-scoped folder bookmarks allow 3105 to safely read and write files without requiring kernel privileges.";
+"mount.actions" = "Actions";
+"mount.add_folder" = "Select Folder to Mount…";
+"mount.refresh" = "Reactivate All Permissions";
+"mount.mounted_folders" = "Mounted Folders (%lld)";
+"mount.mounted_footer" = "Swipe left on any folder to remove access (unmount).";
+"mount.empty_title" = "No Mounted Folders";
+"mount.empty_message" = "Select an application container or folder to grant file access to 3105.";
+"mount.permission_denied_title" = "Permission Denied";
+"mount.permission_denied_message" = "This path requires folder access permission granted on this iOS version.";
+"mount.mount_action" = "Mount Folder";
+"browser.mounted_folders" = "Mounted Folders";
+

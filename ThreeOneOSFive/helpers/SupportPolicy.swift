@@ -34,6 +34,8 @@ enum ExploitSupportPolicy {
         return false
     }
 
+    static let verifiedIOS27Range = "27.0–27.x"
+
     static func isSupported(major: Int, minor: Int, patch: Int, build: String) -> Bool {
         if supportsKernelExploit(major: major, minor: minor, patch: patch) {
             return true
@@ -44,7 +46,11 @@ enum ExploitSupportPolicy {
             return minor < 6 || (minor == 6 && patch <= 1)
         }
 
-        guard major == 27, minor == 0, patch == 0 else { return false }
-        return iOS27BetaNumber(for: build) != nil
+        if major == 27 {
+            guard minor >= 0, patch >= 0 else { return false }
+            return true
+        }
+
+        return false
     }
 }
